@@ -77,7 +77,7 @@
                 payload.depth = document.getElementById("depth").value;
             } else {
                 payload.diameter = document.getElementById("diameter").value;
-                payload.depth = document.getElementById("circular_depth").value;
+                payload.depth = document.getElementById("circular_depth").value; // Always send as 'depth'
             }
 
             let response = await fetch("/calculate", {
