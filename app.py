@@ -30,7 +30,7 @@ def calculate():
 
         elif shape == "circular":
             diameter = float(data.get('diameter'))
-            depth = float(data.get('depth'))
+            depth = float(data.get('depth'))  # from circular input
             radius = diameter / 2
             volume_m3 = math.pi * (radius ** 2) * depth
 
