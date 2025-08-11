@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Sludge Emptying Time Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+        .form-container { display: none; margin-top: 20px; }
+        label { display:block; margin:8px 0; }
+        input, select { padding:6px; width:220px; }
+        button { padding:8px 14px; margin-top:10px; cursor:pointer; }
+        table { margin:20px auto; border-collapse: collapse; width:90%; }
+        table, th, td { border:1px solid #333; }
+        th, td { padding:6px; text-align:center; }
+    </style>
+    <script>
+        function showForm() {
+            document.getElementById('form-container').style.display = 'block';
+            document.getElementById('start-link').style.display = 'none';
+        }
+
+        function toggleShapeFields() {
+            const shape = document.getElementById('shape').value;
+            document.getElementById('rectangular-fields').style.display = shape === 'rectangular' ? 'block' : 'none';
+            document.getElementById('circular-fields').style.display = shape === 'circular' ? 'block' : 'none';
+        }
+
+        async function calculateTime(e) {
+            e.preventDefault();
+            const data = {
+                last_date: document.querySelector("[name='last_date']").value,
+                shape: document.querySelector("[name='shape']").value,
+                P: document.querySelector("[name='P']").value,
+                q: document.querySelector("[name='q']").value,
+                F: document.querySelector("[name='F']").value,
+                S: document.querySelector("[name='S']").value,
+                length: document.querySelector("[name='length']")?.value || null,
+                width: document.querySelector("[name='width']")?.value || null,
+                depth: document.querySelector("[name='depth']")?.value || null,
+                diameter: document.querySelector("[name='diameter']")?.value || null
+            };
+
+            const res = await fetch('/calculate', {
+                method:'POST',
+                headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+
+            if (result.error) {
+                document.getElementById('results').innerHTML = `<p style="color:red;">Error: ${result.error}</p>`;
+                return;
+            }
+
+            let html = `<h3>=== Results ===</h3>
+                        <p><b>Volume of pit:</b> ${result.volume_litres} L</p>
+                        <p><b>Target volume (2/3 full):</b> ${result.target_volume} L</p>
+                        <p><b>A (Liquid retention):</b> ${result.A} L</p>
+                        <p><b>B (Sludge & scum storage):</b> ${result.B} L</p>
+                        <p><b>Check (A + B):</b> ${result.A_plus_B} L</p>
+                        <p><b>N (years until 2/3 full):</b> ${result.N_years} years</p>
+                        <p><b>Next emptying date:</b> ${result.next_emptying_date}</p>`;
+
+            document.getElementById('results').innerHTML = html;
+        }
+    </script>
+</head>
+<body>
+    <h1 id="start-link" onclick="showForm()" style="cursor:pointer; color:blue; text-decoration:underline;">
+        Calculate Sludge Emptying Time
+    </h1>
+
+    <div id="form-container" class="form-container">
+        <form onsubmit="calculateTime(event)">
+            <label>Last emptying date: <input type="date" name="last_date" required></label>
+            <label>No. of people using pit (P): <input type="number" name="P" required></label>
+            <label>q (sewage flow per person per day, L): <input type="number" name="q" required></label>
+            <label>F (digestion factor): <input type="number" step="0.01" name="F" required></label>
+            <label>S (sludge accumulation rate, L/person/year): <input type="number" name="S" required></label>
+            
+            <label>Shape:
+                <select name="shape" id="shape" onchange="toggleShapeFields()" required>
+                    <option value="">Select shape</option>
+                    <option value="rectangular">Rectangular</option>
+                    <option value="circular">Circular</option>
+                </select>
+            </label>
+
+            <div id="rectangular-fields" style="display:none;">
+                <label>Length (m): <input type="number" step="0.01" name="length"></label>
+                <label>Width (m): <input type="number" step="0.01" name="width"></label>
+                <label>Depth (m): <input type="number" step="0.01" name="depth"></label>
+            </div>
+
+            <div id="circular-fields" style="display:none;">
+                <label>Diameter (m): <input type="number" step="0.01" name="diameter"></label>
+                <label>Depth (m): <input type="number" step="0.01" name="depth"></label>
+            </div>
+
+            <button type="submit">Solve</button>
+        </form>
+    </div>
+
+    <div id="results"></div>
+</body>
+</html>
