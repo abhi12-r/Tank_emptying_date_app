@@ -1,106 +1,91 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8" />
     <title>Sludge Emptying Time Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
-        .form-container { display: none; margin-top: 20px; }
-        label { display:block; margin:8px 0; }
-        input, select { padding:6px; width:220px; }
-        button { padding:8px 14px; margin-top:10px; cursor:pointer; }
-        table { margin:20px auto; border-collapse: collapse; width:90%; }
-        table, th, td { border:1px solid #333; }
-        th, td { padding:6px; text-align:center; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        label { display: block; margin-top: 10px; }
+        input, select, button { padding: 5px; margin-top: 5px; }
+        .hidden { display: none; }
+        #result { margin-top: 20px; font-weight: bold; }
     </style>
     <script>
-        function showForm() {
-            document.getElementById('form-container').style.display = 'block';
-            document.getElementById('start-link').style.display = 'none';
-        }
-
         function toggleShapeFields() {
-            const shape = document.getElementById('shape').value;
-            document.getElementById('rectangular-fields').style.display = shape === 'rectangular' ? 'block' : 'none';
-            document.getElementById('circular-fields').style.display = shape === 'circular' ? 'block' : 'none';
+            let shape = document.getElementById("shape").value;
+            document.getElementById("rectangular-fields").classList.add("hidden");
+            document.getElementById("circular-fields").classList.add("hidden");
+
+            if (shape === "rectangular") {
+                document.getElementById("rectangular-fields").classList.remove("hidden");
+            } else if (shape === "circular") {
+                document.getElementById("circular-fields").classList.remove("hidden");
+            }
         }
 
-        async function calculateTime(e) {
-            e.preventDefault();
+        async function calculate() {
             const data = {
-                last_date: document.querySelector("[name='last_date']").value,
-                shape: document.querySelector("[name='shape']").value,
-                P: document.querySelector("[name='P']").value,
-                q: document.querySelector("[name='q']").value,
-                F: document.querySelector("[name='F']").value,
-                S: document.querySelector("[name='S']").value,
-                length: document.querySelector("[name='length']")?.value || null,
-                width: document.querySelector("[name='width']")?.value || null,
-                depth: document.querySelector("[name='depth']")?.value || null,
-                diameter: document.querySelector("[name='diameter']")?.value || null
+                last_date: document.getElementById("last_date").value,
+                P: document.getElementById("P").value,
+                q: document.getElementById("q").value,
+                F: document.getElementById("F").value,
+                S: document.getElementById("S").value,
+                shape: document.getElementById("shape").value,
+                length: document.getElementById("length")?.value,
+                width: document.getElementById("width")?.value,
+                depth: document.getElementById("depth")?.value,
+                diameter: document.getElementById("diameter")?.value
             };
 
-            const res = await fetch('/calculate', {
-                method:'POST',
-                headers:{ 'Content-Type':'application/json' },
+            let response = await fetch("/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
             });
-            const result = await res.json();
 
+            let result = await response.json();
             if (result.error) {
-                document.getElementById('results').innerHTML = `<p style="color:red;">Error: ${result.error}</p>`;
-                return;
+                document.getElementById("result").innerHTML = `<span style="color:red">${result.error}</span>`;
+            } else {
+                document.getElementById("result").innerHTML = `
+                    Volume: ${result.volume_litres} L<br>
+                    Target Volume (2/3): ${result.target_volume} L<br>
+                    A (24h retention): ${result.A} L<br>
+                    Years until full: ${result.N_years}<br>
+                    Next Emptying Date: ${result.next_emptying_date}
+                `;
             }
-
-            let html = `<h3>=== Results ===</h3>
-                        <p><b>Volume of pit:</b> ${result.volume_litres} L</p>
-                        <p><b>Target volume (2/3 full):</b> ${result.target_volume} L</p>
-                        <p><b>A (Liquid retention):</b> ${result.A} L</p>
-                        <p><b>B (Sludge & scum storage):</b> ${result.B} L</p>
-                        <p><b>Check (A + B):</b> ${result.A_plus_B} L</p>
-                        <p><b>N (years until 2/3 full):</b> ${result.N_years} years</p>
-                        <p><b>Next emptying date:</b> ${result.next_emptying_date}</p>`;
-
-            document.getElementById('results').innerHTML = html;
         }
     </script>
 </head>
 <body>
-    <h1 id="start-link" onclick="showForm()" style="cursor:pointer; color:blue; text-decoration:underline;">
-        Calculate Sludge Emptying Time
-    </h1>
+    <h1>Sludge Emptying Time Calculator</h1>
+    <label>Last emptying date: <input type="date" id="last_date"></label>
+    <label>No. of people using pit (P): <input type="number" id="P" step="1"></label>
+    <label>q (sewage flow per person per day, L): <input type="number" id="q" step="0.01"></label>
+    <label>F (digestion factor): <input type="number" id="F" step="0.01"></label>
+    <label>S (sludge accumulation rate, L/person/year): <input type="number" id="S" step="0.01"></label>
 
-    <div id="form-container" class="form-container">
-        <form onsubmit="calculateTime(event)">
-            <label>Last emptying date: <input type="date" name="last_date" required></label>
-            <label>No. of people using pit (P): <input type="number" name="P" required></label>
-            <label>q (sewage flow per person per day, L): <input type="number" name="q" required></label>
-            <label>F (digestion factor): <input type="number" step="0.01" name="F" required></label>
-            <label>S (sludge accumulation rate, L/person/year): <input type="number" name="S" required></label>
-            
-            <label>Shape:
-                <select name="shape" id="shape" onchange="toggleShapeFields()" required>
-                    <option value="">Select shape</option>
-                    <option value="rectangular">Rectangular</option>
-                    <option value="circular">Circular</option>
-                </select>
-            </label>
+    <label>Shape:
+        <select id="shape" onchange="toggleShapeFields()">
+            <option value="">Select</option>
+            <option value="rectangular">Rectangular</option>
+            <option value="circular">Circular</option>
+        </select>
+    </label>
 
-            <div id="rectangular-fields" style="display:none;">
-                <label>Length (m): <input type="number" step="0.01" name="length"></label>
-                <label>Width (m): <input type="number" step="0.01" name="width"></label>
-                <label>Depth (m): <input type="number" step="0.01" name="depth"></label>
-            </div>
-
-            <div id="circular-fields" style="display:none;">
-                <label>Diameter (m): <input type="number" step="0.01" name="diameter"></label>
-                <label>Depth (m): <input type="number" step="0.01" name="depth"></label>
-            </div>
-
-            <button type="submit">Solve</button>
-        </form>
+    <div id="rectangular-fields" class="hidden">
+        <label>Length (m): <input type="number" id="length" step="0.01"></label>
+        <label>Width (m): <input type="number" id="width" step="0.01"></label>
+        <label>Depth (m): <input type="number" id="depth" step="0.01"></label>
     </div>
 
-    <div id="results"></div>
+    <div id="circular-fields" class="hidden">
+        <label>Diameter (m): <input type="number" id="diameter" step="0.01"></label>
+        <label>Depth (m): <input type="number" id="depth" step="0.01"></label>
+    </div>
+
+    <br>
+    <button onclick="calculate()">Solve</button>
+    <div id="result"></div>
 </body>
 </html>
