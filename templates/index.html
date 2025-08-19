@@ -1,144 +1,84 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sludge Emptying Time Calculator</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; max-width: 800px; }
-        input, select { margin-bottom: 10px; padding: 8px; width: 100%; box-sizing: border-box; }
-        button { padding: 10px 18px; margin-top: 8px; }
-        #result { margin-top: 20px; font-weight: bold; }
-        .row { margin-bottom: 8px; }
-    </style>
+  <meta charset="utf-8">
+  <title>Tank Emptying Form</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    form { margin-bottom: 20px; }
+    label { display: block; margin-top: 10px; }
+    #result { margin-top: 20px; font-weight: bold; color: green; }
+  </style>
 </head>
 <body>
-    <h2>Sludge Emptying Time Calculator</h2>
+  <h1>Tank Emptying Form</h1>
 
-    <div class="row">
-        <label>Email: </label>
-        <input type="email" id="email" placeholder="user@example.com">
-    </div>
+  <form id="tankForm">
+    <label>Email:
+      <input type="email" name="email" required>
+    </label>
+    <label>Latitude:
+      <input type="number" step="any" name="lat" required>
+    </label>
+    <label>Longitude:
+      <input type="number" step="any" name="lon" required>
+    </label>
+    <label>Population (P):
+      <input type="number" name="P" required>
+    </label>
+    <label>Per capita waste (q, L/day):
+      <input type="number" name="q" required>
+    </label>
+    <label>Sludge accumulation rate (F, L/person/year):
+      <input type="number" name="F" required>
+    </label>
+    <label>Scum factor (S):
+      <input type="number" name="S" required>
+    </label>
+    <label>Tank Shape:
+      <select name="shape">
+        <option value="cylinder">Cylinder</option>
+        <option value="rectangle">Rectangle</option>
+      </select>
+    </label>
+    <label>Tank Volume (litres):
+      <input type="number" name="volume_litres" required>
+    </label>
+    <label>Design Life (years):
+      <input type="number" name="N_years" required>
+    </label>
+    <button type="submit">Submit</button>
+  </form>
 
-    <div class="row">
-        <label>Latitude: </label>
-        <input type="number" id="lat" step="0.000001" placeholder="e.g., 12.9716">
-    </div>
+  <div id="result"></div>
 
-    <div class="row">
-        <label>Longitude: </label>
-        <input type="number" id="lon" step="0.000001" placeholder="e.g., 77.5946">
-    </div>
+  <script>
+    // Your deployed Google Apps Script Web App URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqb7rO2tTM1bumy2GoRFXuz22Ssl522zeLR8cc3VKQadbrqGD9EI-PUv-9dWtQk1fzCA/exec";
 
-    <div class="row">
-        <label>Last emptying date: </label>
-        <input type="date" id="last_date">
-    </div>
+    document.getElementById("tankForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      let data = Object.fromEntries(formData.entries());
 
-    <div class="row">
-        <label>No. of people using pit (P): </label>
-        <input type="number" id="P" step="0.01">
-    </div>
+      // Compute emptying date
+      let today = new Date();
+      let emptyDate = new Date();
+      emptyDate.setFullYear(today.getFullYear() + parseInt(data.N_years));
+      data.next_emptying_date = emptyDate.toISOString().split('T')[0];
 
-    <div class="row">
-        <label>q (sewage flow per person per day, L): </label>
-        <input type="number" id="q" step="0.01">
-    </div>
-
-    <div class="row">
-        <label>F (digestion factor): </label>
-        <input type="number" id="F" step="0.01">
-    </div>
-
-    <div class="row">
-        <label>S (sludge accumulation rate, L/person/year): </label>
-        <input type="number" id="S" step="0.01">
-    </div>
-
-    <div class="row">
-        <label>Shape: </label>
-        <select id="shape" onchange="toggleShapeFields()">
-            <option value="rectangular">Rectangular</option>
-            <option value="circular">Circular</option>
-        </select>
-    </div>
-
-    <div id="rectangular_fields">
-        <label>Length (m): </label>
-        <input type="number" id="length" step="0.01">
-        <label>Width (m): </label>
-        <input type="number" id="width" step="0.01">
-        <label>Depth (m): </label>
-        <input type="number" id="depth" step="0.01">
-    </div>
-
-    <div id="circular_fields" style="display:none;">
-        <label>Diameter (m): </label>
-        <input type="number" id="diameter" step="0.01">
-        <label>Depth (m): </label>
-        <input type="number" id="circular_depth" step="0.01">
-    </div>
-
-    <button onclick="calculate()">Solve & Save</button>
-    <a href="/map" style="margin-left: 12px;">View Map</a>
-
-    <div id="result"></div>
-
-    <script>
-        function toggleShapeFields() {
-            let shape = document.getElementById("shape").value;
-            document.getElementById("rectangular_fields").style.display = (shape === "rectangular") ? "block" : "none";
-            document.getElementById("circular_fields").style.display = (shape === "circular") ? "block" : "none";
-        }
-
-        async function calculate() {
-            let shape = document.getElementById("shape").value;
-            let payload = {
-                last_date: document.getElementById("last_date").value,
-                P: document.getElementById("P").value,
-                q: document.getElementById("q").value,
-                F: document.getElementById("F").value,
-                S: document.getElementById("S").value,
-                shape: shape,
-                email: document.getElementById("email").value,
-                lat: document.getElementById("lat").value,
-                lon: document.getElementById("lon").value
-            };
-
-            if (shape === "rectangular") {
-                payload.length = document.getElementById("length").value;
-                payload.width = document.getElementById("width").value;
-                payload.depth = document.getElementById("depth").value;
-            } else {
-                payload.diameter = document.getElementById("diameter").value;
-                payload.depth = document.getElementById("circular_depth").value; // Always send as 'depth'
-            }
-
-            document.getElementById("result").innerHTML = "Calculating...";
-            try {
-                let response = await fetch("/calculate", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-
-                let result = await response.json();
-                if (result.error) {
-                    document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
-                } else {
-                    document.getElementById("result").innerHTML = `
-                        Volume of pit: ${result.volume_litres} L<br>
-                        Target volume (2/3 full): ${result.target_volume} L<br>
-                        A (Liquid retention): ${result.A} L<br>
-                        B (Sludge & scum storage): ${result.B} L<br>
-                        Check (A + B): ${result.check_sum} L<br>
-                        N (years until 2/3 full): ${result.N_years} years<br>
-                        Next emptying date: ${result.next_emptying_date} <br>
-                        Email sent: ${result.email_sent ? "Yes" : "No (check server logs or EMAIL_PASSWORD)"}
-                    `;
-                }
-            } catch (err) {
-                document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${err}</span>`;
-            }
-        }
-    </script>
+      try {
+        await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" }
+        });
+        document.getElementById("result").innerText =
+          `✅ Data saved! Next emptying date: ${data.next_emptying_date}`;
+      } catch (err) {
+        document.getElementById("result").innerText = "❌ Error saving data!";
+      }
+    });
+  </script>
 </body>
 </html>
