@@ -1,90 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tank Map</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        #map { height: 90vh; width: 100%; }
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        .legend { background: white; padding: 6px; border-radius: 4px; }
-    </style>
+  <meta charset="utf-8">
+  <title>Tank Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #map { height: 500px; border: 1px solid #ccc; }
+  </style>
 </head>
 <body>
-    <div id="map"></div>
+  <h1>Tank Emptying Map</h1>
+  <div id="map"></div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // linear interpolate between two RGB colors
-        function interpColor(rgb1, rgb2, t) {
-            const r = Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * t);
-            const g = Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * t);
-            const b = Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * t);
-            return `rgb(${r},${g},${b})`;
-        }
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqb7rO2tTM1bumy2GoRFXuz22Ssl522zeLR8cc3VKQadbrqGD9EI-PUv-9dWtQk1fzCA/exec";
 
-        // red -> blue
-        const RED = [255, 0, 0];
-        const BLUE = [0, 0, 255];
+    const map = L.map('map').setView([20.5937, 78.9629], 5); // India center
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-        const map = L.map('map').setView([20.5937, 78.9629], 5); // center India by default
+    async function loadData() {
+      const res = await fetch(SCRIPT_URL + "?read=true");
+      const data = await res.json();
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
+      data.forEach(row => {
+        const lat = parseFloat(row.lat);
+        const lon = parseFloat(row.lon);
+        const emptyDate = row.next_emptying_date;
+
+        const today = new Date();
+        const d = new Date(emptyDate);
+        const daysLeft = Math.round((d - today) / (1000*60*60*24));
+        const color = getColor(daysLeft);
+
+        const marker = L.circleMarker([lat, lon], {
+          radius: 8,
+          color: color,
+          fillOpacity: 0.8
         }).addTo(map);
 
-        async function loadData() {
-            const res = await fetch('/map-data');
-            const points = await res.json();
-            if (!Array.isArray(points)) {
-                console.error("map-data returned non-array:", points);
-                return;
-            }
-            if (points.length === 0) return;
+        marker.bindPopup(
+          `<b>Email:</b> ${row.email}<br>
+           <b>Next Emptying:</b> ${emptyDate}<br>
+           <b>Population:</b> ${row.P}`
+        );
+      });
+    }
 
-            // compute min/max days_until for color mapping
-            let daysVals = points.map(p => p.days_until);
-            let minD = Math.min(...daysVals);
-            let maxD = Math.max(...daysVals);
-            // if all equal, avoid divide by zero
-            if (minD === maxD) {
-                minD = minD - 1;
-                maxD = maxD + 1;
-            }
+    function getColor(days) {
+      if (days < 100) return "red";
+      if (days < 500) return "orange";
+      if (days < 1000) return "yellow";
+      if (days < 2000) return "green";
+      return "blue";
+    }
 
-            points.forEach(p => {
-                const t = (p.days_until - minD) / (maxD - minD); // 0..1
-                // We want soonest (smallest days) -> RED, farthest (largest) -> BLUE.
-                // t currently 0 at min (soonest) -> we want red at t=0; that's fine.
-                const color = interpColor(RED, BLUE, t);
-
-                const marker = L.circleMarker([p.lat, p.lon], {
-                    radius: 8,
-                    color: color,
-                    fillColor: color,
-                    fillOpacity: 0.8,
-                    weight: 1
-                }).addTo(map);
-
-                marker.bindPopup(
-                    `<b>Next emptying:</b> ${p.next_emptying_date}<br>
-                     <b>Days until:</b> ${p.days_until}<br>
-                     <b>Email:</b> ${p.email || 'N/A'}`
-                );
-            });
-
-            // zoom to bounds of points
-            const latlngs = points.map(p => [p.lat, p.lon]);
-            const bounds = L.latLngBounds(latlngs);
-            map.fitBounds(bounds.pad(0.2));
-        }
-
-        loadData();
-    </script>
+    loadData();
+  </script>
 </body>
 </html>
