@@ -3,53 +3,82 @@
 <head>
     <title>Sludge Emptying Time Calculator</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        input, select { margin-bottom: 10px; padding: 5px; width: 300px; }
-        button { padding: 8px 16px; }
+        body { font-family: Arial, sans-serif; margin: 20px; max-width: 800px; }
+        input, select { margin-bottom: 10px; padding: 8px; width: 100%; box-sizing: border-box; }
+        button { padding: 10px 18px; margin-top: 8px; }
         #result { margin-top: 20px; font-weight: bold; }
+        .row { margin-bottom: 8px; }
     </style>
 </head>
 <body>
     <h2>Sludge Emptying Time Calculator</h2>
 
-    <label>Last emptying date: </label>
-    <input type="date" id="last_date"><br>
+    <div class="row">
+        <label>Email: </label>
+        <input type="email" id="email" placeholder="user@example.com">
+    </div>
 
-    <label>No. of people using pit (P): </label>
-    <input type="number" id="P" step="0.01"><br>
+    <div class="row">
+        <label>Latitude: </label>
+        <input type="number" id="lat" step="0.000001" placeholder="e.g., 12.9716">
+    </div>
 
-    <label>q (sewage flow per person per day, L): </label>
-    <input type="number" id="q" step="0.01"><br>
+    <div class="row">
+        <label>Longitude: </label>
+        <input type="number" id="lon" step="0.000001" placeholder="e.g., 77.5946">
+    </div>
 
-    <label>F (digestion factor): </label>
-    <input type="number" id="F" step="0.01"><br>
+    <div class="row">
+        <label>Last emptying date: </label>
+        <input type="date" id="last_date">
+    </div>
 
-    <label>S (sludge accumulation rate, L/person/year): </label>
-    <input type="number" id="S" step="0.01"><br>
+    <div class="row">
+        <label>No. of people using pit (P): </label>
+        <input type="number" id="P" step="0.01">
+    </div>
 
-    <label>Shape: </label>
-    <select id="shape" onchange="toggleShapeFields()">
-        <option value="rectangular">Rectangular</option>
-        <option value="circular">Circular</option>
-    </select><br>
+    <div class="row">
+        <label>q (sewage flow per person per day, L): </label>
+        <input type="number" id="q" step="0.01">
+    </div>
+
+    <div class="row">
+        <label>F (digestion factor): </label>
+        <input type="number" id="F" step="0.01">
+    </div>
+
+    <div class="row">
+        <label>S (sludge accumulation rate, L/person/year): </label>
+        <input type="number" id="S" step="0.01">
+    </div>
+
+    <div class="row">
+        <label>Shape: </label>
+        <select id="shape" onchange="toggleShapeFields()">
+            <option value="rectangular">Rectangular</option>
+            <option value="circular">Circular</option>
+        </select>
+    </div>
 
     <div id="rectangular_fields">
         <label>Length (m): </label>
-        <input type="number" id="length" step="0.01"><br>
+        <input type="number" id="length" step="0.01">
         <label>Width (m): </label>
-        <input type="number" id="width" step="0.01"><br>
+        <input type="number" id="width" step="0.01">
         <label>Depth (m): </label>
-        <input type="number" id="depth" step="0.01"><br>
+        <input type="number" id="depth" step="0.01">
     </div>
 
     <div id="circular_fields" style="display:none;">
         <label>Diameter (m): </label>
-        <input type="number" id="diameter" step="0.01"><br>
+        <input type="number" id="diameter" step="0.01">
         <label>Depth (m): </label>
-        <input type="number" id="circular_depth" step="0.01"><br>
+        <input type="number" id="circular_depth" step="0.01">
     </div>
 
-    <button onclick="calculate()">Solve</button>
+    <button onclick="calculate()">Solve & Save</button>
+    <a href="/map" style="margin-left: 12px;">View Map</a>
 
     <div id="result"></div>
 
@@ -68,7 +97,10 @@
                 q: document.getElementById("q").value,
                 F: document.getElementById("F").value,
                 S: document.getElementById("S").value,
-                shape: shape
+                shape: shape,
+                email: document.getElementById("email").value,
+                lat: document.getElementById("lat").value,
+                lon: document.getElementById("lon").value
             };
 
             if (shape === "rectangular") {
@@ -80,25 +112,31 @@
                 payload.depth = document.getElementById("circular_depth").value; // Always send as 'depth'
             }
 
-            let response = await fetch("/calculate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
+            document.getElementById("result").innerHTML = "Calculating...";
+            try {
+                let response = await fetch("/calculate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
 
-            let result = await response.json();
-            if (result.error) {
-                document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
-            } else {
-                document.getElementById("result").innerHTML = `
-                    Volume of pit: ${result.volume_litres} L<br>
-                    Target volume (2/3 full): ${result.target_volume} L<br>
-                    A (Liquid retention): ${result.A} L<br>
-                    B (Sludge & scum storage): ${result.B} L<br>
-                    Check (A + B): ${result.check_sum} L<br>
-                    N (years until 2/3 full): ${result.N_years} years<br>
-                    Next emptying date: ${result.next_emptying_date}
-                `;
+                let result = await response.json();
+                if (result.error) {
+                    document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
+                } else {
+                    document.getElementById("result").innerHTML = `
+                        Volume of pit: ${result.volume_litres} L<br>
+                        Target volume (2/3 full): ${result.target_volume} L<br>
+                        A (Liquid retention): ${result.A} L<br>
+                        B (Sludge & scum storage): ${result.B} L<br>
+                        Check (A + B): ${result.check_sum} L<br>
+                        N (years until 2/3 full): ${result.N_years} years<br>
+                        Next emptying date: ${result.next_emptying_date} <br>
+                        Email sent: ${result.email_sent ? "Yes" : "No (check server logs or EMAIL_PASSWORD)"}
+                    `;
+                }
+            } catch (err) {
+                document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${err}</span>`;
             }
         }
     </script>
