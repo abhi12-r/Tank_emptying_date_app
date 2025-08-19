@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tank Emptying Reminder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px;
+        }
+        form {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+        }
+        label {
+            font-weight: bold;
+        }
+        input, button {
+            margin-top: 8px;
+            width: 100%;
+            padding: 8px;
+        }
+        button {
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h2>Enter Your Details</h2>
+    <form method="POST">
+        <label for="email">Your Email:</label>
+        <input type="email" name="email" required>
+
+        <label for="next_date">Next Emptying Date:</label>
+        <input type="date" name="next_date" required>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
