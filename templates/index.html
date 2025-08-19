@@ -2,126 +2,137 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tank Emptying Date App</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f7f8;
-      color: #333;
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-      color: #0066cc;
-    }
-    form {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    label {
-      display: block;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-    button {
-      margin-top: 20px;
-      padding: 10px;
-      width: 100%;
-      background: #0066cc;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover {
-      background: #004d99;
-    }
-    #result {
-      margin-top: 20px;
-      padding: 15px;
-      background: #eaf7ea;
-      border: 1px solid #b2d8b2;
-      border-radius: 8px;
-      display: none;
-    }
-  </style>
-</head>
-<body>
-  <h2>Tank Emptying Date Calculator</h2>
-
-  <form id="tankForm">
-    <label>Email:</label>
-    <input type="email" name="email" required>
-
-    <label>Latitude:</label>
-    <input type="number" step="any" name="lat" required>
-
-    <label>Longitude:</label>
-    <input type="number" step="any" name="lon" required>
-
-    <label>Tank Shape:</label>
-    <select name="shape" required>
-      <option value="cylindrical">Cylindrical</option>
-      <option value="rectangular">Rectangular</option>
-    </select>
-
-    <label>Tank Volume (litres):</label>
-    <input type="number" name="volume_litres" required>
-
-    <label>Population Served (P):</label>
-    <input type="number" name="P" required>
-
-    <label>Wastewater Generation (q, L/person/day):</label>
-    <input type="number" name="q" required>
-
-    <label>Sludge Accumulation Rate (F, L/person/year):</label>
-    <input type="number" name="F" required>
-
-    <label>Scum Storage (S, L/person):</label>
-    <input type="number" name="S" required>
-
-    <label>Design Period (N years):</label>
-    <input type="number" name="N_years" required>
-
-    <button type="submit">Submit</button>
-  </form>
-
-  <div id="result"></div>
-
+  <title>Tank Emptying Date Calculator</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.css" />
   <script>
-    document.getElementById("tankForm").addEventListener("submit", async function(e) {
-      e.preventDefault();
+    function showDimensionFields() {
+      const shape = document.getElementById("tank_shape").value;
+      document.getElementById("rectangularFields").style.display = "none";
+      document.getElementById("circularFields").style.display = "none";
+      document.getElementById("cylindricalFields").style.display = "none";
 
-      const formData = new FormData(this);
-      const data = {};
-      formData.forEach((value, key) => { data[key] = value });
+      if (shape === "Rectangular") {
+        document.getElementById("rectangularFields").style.display = "block";
+      } else if (shape === "Circular") {
+        document.getElementById("circularFields").style.display = "block";
+      } else if (shape === "Cylindrical") {
+        document.getElementById("cylindricalFields").style.display = "block";
+      }
+    }
 
-      let response = await fetch("/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
+    function calculateVolume() {
+      const shape = document.getElementById("tank_shape").value;
+      let volume = 0;
 
-      let result = await response.json();
-      document.getElementById("result").style.display = "block";
-      document.getElementById("result").innerHTML = 
-        `<b>Next Emptying Date:</b> ${result.next_emptying_date} <br>
-         A confirmation mail has been sent to <b>${data.email}</b>.`;
-    });
+      if (shape === "Rectangular") {
+        const l = parseFloat(document.getElementById("length").value) || 0;
+        const b = parseFloat(document.getElementById("breadth").value) || 0;
+        const d = parseFloat(document.getElementById("depth").value) || 0;
+        volume = l * b * d;
+      } else if (shape === "Circular") {
+        const dia = parseFloat(document.getElementById("diameter").value) || 0;
+        const d = parseFloat(document.getElementById("depth_circular").value) || 0;
+        volume = 3.1416 * (dia / 2) * (dia / 2) * d;
+      } else if (shape === "Cylindrical") {
+        const r = parseFloat(document.getElementById("radius").value) || 0;
+        const h = parseFloat(document.getElementById("height").value) || 0;
+        volume = 3.1416 * r * r * h;
+      }
+
+      document.getElementById("tank_volume").value = volume.toFixed(2);
+    }
+
+    function initMap() {
+      const lat = parseFloat(document.getElementById("latitude").value) || 0;
+      const lon = parseFloat(document.getElementById("longitude").value) || 0;
+
+      if (!window.map) {
+        window.map = L.map('map').setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(window.map);
+      }
+
+      if (window.marker) {
+        window.map.removeLayer(window.marker);
+      }
+
+      window.marker = L.marker([lat, lon]).addTo(window.map)
+        .bindPopup("Tank Location").openPopup();
+    }
   </script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-lg mx-auto bg-white p-6 rounded-xl shadow-md">
+    <h2 class="text-2xl font-bold text-center text-blue-700 mb-4">Tank Emptying Date Calculator</h2>
+    <form action="/calculate" method="POST" class="space-y-4" onsubmit="calculateVolume()">
+      
+      <label>Email:</label>
+      <input type="email" name="email" class="w-full border p-2 rounded" required>
+
+      <label>Latitude:</label>
+      <input type="number" step="0.01" id="latitude" name="latitude" class="w-full border p-2 rounded" onchange="initMap()" required>
+
+      <label>Longitude:</label>
+      <input type="number" step="0.01" id="longitude" name="longitude" class="w-full border p-2 rounded" onchange="initMap()" required>
+
+      <label>Tank Shape:</label>
+      <select id="tank_shape" name="tank_shape" class="w-full border p-2 rounded" onchange="showDimensionFields()" required>
+        <option value="">Select</option>
+        <option value="Rectangular">Rectangular</option>
+        <option value="Circular">Circular</option>
+        <option value="Cylindrical">Cylindrical</option>
+      </select>
+
+      <!-- Rectangular Fields -->
+      <div id="rectangularFields" style="display:none;">
+        <label>Length (m):</label>
+        <input type="number" step="0.01" id="length" class="w-full border p-2 rounded" oninput="calculateVolume()">
+        <label>Breadth (m):</label>
+        <input type="number" step="0.01" id="breadth" class="w-full border p-2 rounded" oninput="calculateVolume()">
+        <label>Depth (m):</label>
+        <input type="number" step="0.01" id="depth" class="w-full border p-2 rounded" oninput="calculateVolume()">
+      </div>
+
+      <!-- Circular Fields -->
+      <div id="circularFields" style="display:none;">
+        <label>Diameter (m):</label>
+        <input type="number" step="0.01" id="diameter" class="w-full border p-2 rounded" oninput="calculateVolume()">
+        <label>Depth (m):</label>
+        <input type="number" step="0.01" id="depth_circular" class="w-full border p-2 rounded" oninput="calculateVolume()">
+      </div>
+
+      <!-- Cylindrical Fields -->
+      <div id="cylindricalFields" style="display:none;">
+        <label>Radius (m):</label>
+        <input type="number" step="0.01" id="radius" class="w-full border p-2 rounded" oninput="calculateVolume()">
+        <label>Height (m):</label>
+        <input type="number" step="0.01" id="height" class="w-full border p-2 rounded" oninput="calculateVolume()">
+      </div>
+
+      <label>Tank Volume (litres):</label>
+      <input type="number" step="0.01" id="tank_volume" name="tank_volume" class="w-full border p-2 rounded bg-gray-100" readonly>
+
+      <label>Population Served (P):</label>
+      <input type="number" name="population" class="w-full border p-2 rounded" required>
+
+      <label>Wastewater Generation (q, L/person/day):</label>
+      <input type="number" name="wastewater" class="w-full border p-2 rounded" required>
+
+      <label>Sludge Accumulation Rate (F, L/person/year):</label>
+      <input type="number" name="sludge" class="w-full border p-2 rounded" required>
+
+      <label>Design Period (N years):</label>
+      <input type="number" name="design_period" class="w-full border p-2 rounded" required>
+
+      <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">Submit</button>
+    </form>
+
+    <!-- Map -->
+    <div id="map" class="mt-6 h-64 w-full rounded shadow"></div>
+  </div>
 </body>
 </html>
