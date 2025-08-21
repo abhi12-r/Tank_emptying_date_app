@@ -1,64 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Tank Map</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #map { height: 500px; border: 1px solid #ccc; }
-  </style>
+    <title>Sludge Emptying Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; }
+    </style>
 </head>
 <body>
-  <h1>Tank Emptying Map</h1>
-  <div id="map"></div>
+    <h2>Sludge Emptying Heat Map</h2>
+    <div id="map"></div>
 
-  <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqb7rO2tTM1bumy2GoRFXuz22Ssl522zeLR8cc3VKQadbrqGD9EI-PUv-9dWtQk1fzCA/exec";
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        let map = L.map('map').setView([20, 80], 5); // India center
 
-    const map = L.map('map').setView([20.5937, 78.9629], 5); // India center
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    async function loadData() {
-      const res = await fetch(SCRIPT_URL + "?read=true");
-      const data = await res.json();
-
-      data.forEach(row => {
-        const lat = parseFloat(row.lat);
-        const lon = parseFloat(row.lon);
-        const emptyDate = row.next_emptying_date;
-
-        const today = new Date();
-        const d = new Date(emptyDate);
-        const daysLeft = Math.round((d - today) / (1000*60*60*24));
-        const color = getColor(daysLeft);
-
-        const marker = L.circleMarker([lat, lon], {
-          radius: 8,
-          color: color,
-          fillOpacity: 0.8
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        marker.bindPopup(
-          `<b>Email:</b> ${row.email}<br>
-           <b>Next Emptying:</b> ${emptyDate}<br>
-           <b>Population:</b> ${row.P}`
-        );
-      });
-    }
+        let locations = {{ locations|tojson }};
 
-    function getColor(days) {
-      if (days < 100) return "red";
-      if (days < 500) return "orange";
-      if (days < 1000) return "yellow";
-      if (days < 2000) return "green";
-      return "blue";
-    }
+        locations.forEach(loc => {
+            // Days remaining till emptying
+            let today = new Date();
+            let next = new Date(loc.next_emptying_date);
+            let diffDays = (next - today) / (1000*60*60*24);
 
-    loadData();
-  </script>
+            // Define color scale
+            let color = diffDays < 30 ? "red" : diffDays < 90 ? "orange" : "green";
+
+            L.circleMarker([loc.latitude, loc.longitude], {
+                radius: 8,
+                color: color,
+                fillOpacity: 0.8
+            }).addTo(map).bindPopup(`
+                <b>Next Emptying:</b> ${loc.next_emptying_date}<br>
+                <b>People:</b> ${loc.A / loc.q}<br>
+                <b>Volume:</b> ${loc.volume_litres} L
+            `);
+        });
+    </script>
 </body>
 </html>
