@@ -49,9 +49,17 @@
         <input type="number" id="circular_depth" step="0.01"><br>
     </div>
 
+    <label>Latitude: </label>
+    <input type="number" id="latitude" step="0.000001"><br>
+
+    <label>Longitude: </label>
+    <input type="number" id="longitude" step="0.000001"><br>
+
     <button onclick="calculate()">Solve</button>
 
     <div id="result"></div>
+
+    <p><a href="/map" target="_blank">View Heat Map</a></p>
 
     <script>
         function toggleShapeFields() {
@@ -68,6 +76,8 @@
                 q: document.getElementById("q").value,
                 F: document.getElementById("F").value,
                 S: document.getElementById("S").value,
+                latitude: document.getElementById("latitude").value,
+                longitude: document.getElementById("longitude").value,
                 shape: shape
             };
 
@@ -97,7 +107,8 @@
                     B (Sludge & scum storage): ${result.B} L<br>
                     Check (A + B): ${result.check_sum} L<br>
                     N (years until 2/3 full): ${result.N_years} years<br>
-                    Next emptying date: ${result.next_emptying_date}
+                    Next emptying date: ${result.next_emptying_date}<br>
+                    Location: (${result.latitude}, ${result.longitude})
                 `;
             }
         }
