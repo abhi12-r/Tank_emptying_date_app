@@ -1,138 +1,106 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tank Emptying Date Calculator</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet/dist/leaflet.css" />
-  <script>
-    function showDimensionFields() {
-      const shape = document.getElementById("tank_shape").value;
-      document.getElementById("rectangularFields").style.display = "none";
-      document.getElementById("circularFields").style.display = "none";
-      document.getElementById("cylindricalFields").style.display = "none";
-
-      if (shape === "Rectangular") {
-        document.getElementById("rectangularFields").style.display = "block";
-      } else if (shape === "Circular") {
-        document.getElementById("circularFields").style.display = "block";
-      } else if (shape === "Cylindrical") {
-        document.getElementById("cylindricalFields").style.display = "block";
-      }
-    }
-
-    function calculateVolume() {
-      const shape = document.getElementById("tank_shape").value;
-      let volume = 0;
-
-      if (shape === "Rectangular") {
-        const l = parseFloat(document.getElementById("length").value) || 0;
-        const b = parseFloat(document.getElementById("breadth").value) || 0;
-        const d = parseFloat(document.getElementById("depth").value) || 0;
-        volume = l * b * d;
-      } else if (shape === "Circular") {
-        const dia = parseFloat(document.getElementById("diameter").value) || 0;
-        const d = parseFloat(document.getElementById("depth_circular").value) || 0;
-        volume = 3.1416 * (dia / 2) * (dia / 2) * d;
-      } else if (shape === "Cylindrical") {
-        const r = parseFloat(document.getElementById("radius").value) || 0;
-        const h = parseFloat(document.getElementById("height").value) || 0;
-        volume = 3.1416 * r * r * h;
-      }
-
-      document.getElementById("tank_volume").value = volume.toFixed(2);
-    }
-
-    function initMap() {
-      const lat = parseFloat(document.getElementById("latitude").value) || 0;
-      const lon = parseFloat(document.getElementById("longitude").value) || 0;
-
-      if (!window.map) {
-        window.map = L.map('map').setView([lat, lon], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(window.map);
-      }
-
-      if (window.marker) {
-        window.map.removeLayer(window.marker);
-      }
-
-      window.marker = L.marker([lat, lon]).addTo(window.map)
-        .bindPopup("Tank Location").openPopup();
-    }
-  </script>
+    <title>Sludge Emptying Time Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input, select { margin-bottom: 10px; padding: 5px; width: 300px; }
+        button { padding: 8px 16px; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-gray-100 p-8">
-  <div class="max-w-lg mx-auto bg-white p-6 rounded-xl shadow-md">
-    <h2 class="text-2xl font-bold text-center text-blue-700 mb-4">Tank Emptying Date Calculator</h2>
-    <form action="/calculate" method="POST" class="space-y-4" onsubmit="calculateVolume()">
-      
-      <label>Email:</label>
-      <input type="email" name="email" class="w-full border p-2 rounded" required>
+<body>
+    <h2>Sludge Emptying Time Calculator</h2>
 
-      <label>Latitude:</label>
-      <input type="number" step="0.01" id="latitude" name="latitude" class="w-full border p-2 rounded" onchange="initMap()" required>
+    <label>Last emptying date: </label>
+    <input type="date" id="last_date"><br>
 
-      <label>Longitude:</label>
-      <input type="number" step="0.01" id="longitude" name="longitude" class="w-full border p-2 rounded" onchange="initMap()" required>
+    <label>No. of people using pit (P): </label>
+    <input type="number" id="P" step="0.01"><br>
 
-      <label>Tank Shape:</label>
-      <select id="tank_shape" name="tank_shape" class="w-full border p-2 rounded" onchange="showDimensionFields()" required>
-        <option value="">Select</option>
-        <option value="Rectangular">Rectangular</option>
-        <option value="Circular">Circular</option>
-        <option value="Cylindrical">Cylindrical</option>
-      </select>
+    <label>q (sewage flow per person per day, L): </label>
+    <input type="number" id="q" step="0.01"><br>
 
-      <!-- Rectangular Fields -->
-      <div id="rectangularFields" style="display:none;">
-        <label>Length (m):</label>
-        <input type="number" step="0.01" id="length" class="w-full border p-2 rounded" oninput="calculateVolume()">
-        <label>Breadth (m):</label>
-        <input type="number" step="0.01" id="breadth" class="w-full border p-2 rounded" oninput="calculateVolume()">
-        <label>Depth (m):</label>
-        <input type="number" step="0.01" id="depth" class="w-full border p-2 rounded" oninput="calculateVolume()">
-      </div>
+    <label>F (digestion factor): </label>
+    <input type="number" id="F" step="0.01"><br>
 
-      <!-- Circular Fields -->
-      <div id="circularFields" style="display:none;">
-        <label>Diameter (m):</label>
-        <input type="number" step="0.01" id="diameter" class="w-full border p-2 rounded" oninput="calculateVolume()">
-        <label>Depth (m):</label>
-        <input type="number" step="0.01" id="depth_circular" class="w-full border p-2 rounded" oninput="calculateVolume()">
-      </div>
+    <label>S (sludge accumulation rate, L/person/year): </label>
+    <input type="number" id="S" step="0.01"><br>
 
-      <!-- Cylindrical Fields -->
-      <div id="cylindricalFields" style="display:none;">
-        <label>Radius (m):</label>
-        <input type="number" step="0.01" id="radius" class="w-full border p-2 rounded" oninput="calculateVolume()">
-        <label>Height (m):</label>
-        <input type="number" step="0.01" id="height" class="w-full border p-2 rounded" oninput="calculateVolume()">
-      </div>
+    <label>Shape: </label>
+    <select id="shape" onchange="toggleShapeFields()">
+        <option value="rectangular">Rectangular</option>
+        <option value="circular">Circular</option>
+    </select><br>
 
-      <label>Tank Volume (litres):</label>
-      <input type="number" step="0.01" id="tank_volume" name="tank_volume" class="w-full border p-2 rounded bg-gray-100" readonly>
+    <div id="rectangular_fields">
+        <label>Length (m): </label>
+        <input type="number" id="length" step="0.01"><br>
+        <label>Width (m): </label>
+        <input type="number" id="width" step="0.01"><br>
+        <label>Depth (m): </label>
+        <input type="number" id="depth" step="0.01"><br>
+    </div>
 
-      <label>Population Served (P):</label>
-      <input type="number" name="population" class="w-full border p-2 rounded" required>
+    <div id="circular_fields" style="display:none;">
+        <label>Diameter (m): </label>
+        <input type="number" id="diameter" step="0.01"><br>
+        <label>Depth (m): </label>
+        <input type="number" id="circular_depth" step="0.01"><br>
+    </div>
 
-      <label>Wastewater Generation (q, L/person/day):</label>
-      <input type="number" name="wastewater" class="w-full border p-2 rounded" required>
+    <button onclick="calculate()">Solve</button>
 
-      <label>Sludge Accumulation Rate (F, L/person/year):</label>
-      <input type="number" name="sludge" class="w-full border p-2 rounded" required>
+    <div id="result"></div>
 
-      <label>Design Period (N years):</label>
-      <input type="number" name="design_period" class="w-full border p-2 rounded" required>
+    <script>
+        function toggleShapeFields() {
+            let shape = document.getElementById("shape").value;
+            document.getElementById("rectangular_fields").style.display = (shape === "rectangular") ? "block" : "none";
+            document.getElementById("circular_fields").style.display = (shape === "circular") ? "block" : "none";
+        }
 
-      <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">Submit</button>
-    </form>
+        async function calculate() {
+            let shape = document.getElementById("shape").value;
+            let payload = {
+                last_date: document.getElementById("last_date").value,
+                P: document.getElementById("P").value,
+                q: document.getElementById("q").value,
+                F: document.getElementById("F").value,
+                S: document.getElementById("S").value,
+                shape: shape
+            };
 
-    <!-- Map -->
-    <div id="map" class="mt-6 h-64 w-full rounded shadow"></div>
-  </div>
+            if (shape === "rectangular") {
+                payload.length = document.getElementById("length").value;
+                payload.width = document.getElementById("width").value;
+                payload.depth = document.getElementById("depth").value;
+            } else {
+                payload.diameter = document.getElementById("diameter").value;
+                payload.depth = document.getElementById("circular_depth").value; // Always send as 'depth'
+            }
+
+            let response = await fetch("/calculate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            let result = await response.json();
+            if (result.error) {
+                document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
+            } else {
+                document.getElementById("result").innerHTML = `
+                    Volume of pit: ${result.volume_litres} L<br>
+                    Target volume (2/3 full): ${result.target_volume} L<br>
+                    A (Liquid retention): ${result.A} L<br>
+                    B (Sludge & scum storage): ${result.B} L<br>
+                    Check (A + B): ${result.check_sum} L<br>
+                    N (years until 2/3 full): ${result.N_years} years<br>
+                    Next emptying date: ${result.next_emptying_date}
+                `;
+            }
+        }
+    </script>
 </body>
 </html>
