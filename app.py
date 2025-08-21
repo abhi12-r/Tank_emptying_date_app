@@ -1,84 +1,74 @@
-from flask import Flask, request, jsonify, render_template
-import requests
-import smtplib
-from email.mime.text import MIMEText
+from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
-import os   # <-- new for environment variables
+import math
 
 app = Flask(__name__)
 
-# Your Google Apps Script Web App endpoint
-GOOGLE_SHEET_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyqb7rO2tTM1bumy2GoRFXuz22Ssl522zeLR8cc3VKQadbrqGD9EI-PUv-9dWtQk1fzCA/exec"
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-# Mail settings (now from environment variables in Render dashboard)
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = os.getenv("EMAIL_USER")
-SENDER_PASSWORD = os.getenv("EMAIL_PASS")
-
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/submit", methods=["POST"])
-def submit():
+@app.route('/calculate', methods=['POST'])
+def calculate():
     data = request.json
 
-    # Extract inputs
-    email = data.get("email")
-    lat = data.get("lat")
-    lon = data.get("lon")
-    shape = data.get("shape")
-    volume = float(data.get("volume_litres"))
-    P = float(data.get("P"))
-    q = float(data.get("q"))
-    F = float(data.get("F"))
-    S = float(data.get("S"))
-    N = float(data.get("N_years"))
-
-    # Emptying time calculation
-    T_days = (volume - (P * S)) / (P * (q + F / 365))
-    emptying_date = datetime.now() + timedelta(days=T_days)
-    next_emptying_date = emptying_date.strftime("%Y-%m-%d")
-
-    # Send data to Google Sheet
-    sheet_payload = {
-        "email": email,
-        "lat": lat,
-        "lon": lon,
-        "shape": shape,
-        "volume_litres": volume,
-        "P": P,
-        "q": q,
-        "F": F,
-        "S": S,
-        "N_years": N,
-        "next_emptying_date": next_emptying_date
-    }
     try:
-        requests.post(GOOGLE_SHEET_WEBAPP_URL, data=sheet_payload)
+        # Inputs
+        last_emptying_date = data.get('last_date')
+        shape = data.get('shape')
+        P = float(data.get('P'))  # Number of people
+        q = float(data.get('q'))  # Sewage flow per person per day (L)
+        F = float(data.get('F'))  # Digestion factor
+        S = float(data.get('S'))  # Sludge accumulation rate (L/person/year)
+
+        # Dimensions based on shape
+        if shape == "rectangular":
+            length = float(data.get('length'))
+            width = float(data.get('width'))
+            depth = float(data.get('depth'))
+            volume_m3 = length * width * depth
+
+        elif shape == "circular":
+            diameter = float(data.get('diameter'))
+            depth = float(data.get('depth'))  # from circular input
+            radius = diameter / 2
+            volume_m3 = math.pi * (radius ** 2) * depth
+
+        else:
+            return jsonify({"error": "Invalid shape"}), 400
+
+        # Convert m³ to litres
+        volume_litres = volume_m3 * 1000
+
+        # WHO formula
+        A = P * q  # Liquid retention (L)
+        target_volume = (2 / 3) * volume_litres  # 2/3 full
+
+        # Years until 2/3 full
+        N = (target_volume - A) / (P * F * S)
+
+        # Sludge & scum storage
+        B = P * N * F * S
+
+        # Check sum
+        check_sum = A + B
+
+        # Next emptying date
+        last_date_obj = datetime.strptime(last_emptying_date, "%Y-%m-%d")
+        next_emptying_date = last_date_obj + timedelta(days=N * 365)
+
+        return jsonify({
+            "volume_litres": round(volume_litres, 2),
+            "target_volume": round(target_volume, 2),
+            "A": round(A, 2),
+            "B": round(B, 2),
+            "check_sum": round(check_sum, 2),
+            "N_years": round(N, 2),
+            "next_emptying_date": next_emptying_date.strftime("%Y-%m-%d")
+        })
+
     except Exception as e:
-        print("Error updating Google Sheet:", e)
+        return jsonify({"error": str(e)}), 400
 
-    # Send confirmation email
-    try:
-        msg = MIMEText(
-            f"Hello,\n\nYour septic tank needs emptying on: {next_emptying_date}.\n\nLocation: ({lat}, {lon})"
-        )
-        msg["Subject"] = "Septic Tank Emptying Date"
-        msg["From"] = SENDER_EMAIL
-        msg["To"] = email
-
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, [email], msg.as_string())
-    except Exception as e:
-        print("Error sending email:", e)
-
-    # Return response
-    return jsonify({"next_emptying_date": next_emptying_date})
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(debug=True)
