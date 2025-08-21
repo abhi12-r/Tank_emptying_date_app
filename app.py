@@ -4,6 +4,9 @@ import math
 
 app = Flask(__name__)
 
+# Store all calculated locations
+locations = []
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -20,6 +23,8 @@ def calculate():
         q = float(data.get('q'))  # Sewage flow per person per day (L)
         F = float(data.get('F'))  # Digestion factor
         S = float(data.get('S'))  # Sludge accumulation rate (L/person/year)
+        latitude = float(data.get("latitude"))
+        longitude = float(data.get("longitude"))
 
         # Dimensions based on shape
         if shape == "rectangular":
@@ -57,18 +62,31 @@ def calculate():
         last_date_obj = datetime.strptime(last_emptying_date, "%Y-%m-%d")
         next_emptying_date = last_date_obj + timedelta(days=N * 365)
 
-        return jsonify({
+        result = {
             "volume_litres": round(volume_litres, 2),
             "target_volume": round(target_volume, 2),
             "A": round(A, 2),
             "B": round(B, 2),
             "check_sum": round(check_sum, 2),
             "N_years": round(N, 2),
-            "next_emptying_date": next_emptying_date.strftime("%Y-%m-%d")
-        })
+            "next_emptying_date": next_emptying_date.strftime("%Y-%m-%d"),
+            "latitude": latitude,
+            "longitude": longitude
+        }
+
+        # Save for visualization
+        locations.append(result)
+
+        return jsonify(result)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+
+@app.route('/map')
+def map_view():
+    return render_template('map.html', locations=locations)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
