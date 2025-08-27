@@ -9,8 +9,8 @@
             padding: 0; 
             display: flex; 
             justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
+            align-items: flex-start; /* Push content from top instead of middle */
+            min-height: 100vh; 
             background-color: #f9f9f9;
         }
         .container {
@@ -20,6 +20,7 @@
             border-radius: 12px;
             box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
             width: 400px;
+            margin-top: 30px; /* small top spacing */
         }
         h2 {
             margin-bottom: 5px;
@@ -60,17 +61,20 @@
             font-weight: normal;
             text-align: center;
         }
-        #result table {
+        #moreDetails {
+            display: none;
+            margin-top: 15px;
+        }
+        #moreDetails table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
         }
-        #result th, #result td {
+        #moreDetails th, #moreDetails td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
-        #result th {
+        #moreDetails th {
             background-color: #007BFF;
             color: white;
         }
@@ -79,6 +83,7 @@
             margin-top: 15px;
             text-decoration: none;
             color: #007BFF;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -133,8 +138,7 @@
         <button onclick="calculate()">Solve</button>
 
         <div id="result"></div>
-
-        <p><a href="/map" target="_blank">View Heat Map</a></p>
+        <div id="moreDetails"></div>
     </div>
 
     <script>
@@ -177,6 +181,10 @@
                 document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
             } else {
                 document.getElementById("result").innerHTML = `
+                    <h3>Next emptying date: ${result.next_emptying_date}</h3>
+                    <a onclick="document.getElementById('moreDetails').style.display='block'">Click to know more</a>
+                `;
+                document.getElementById("moreDetails").innerHTML = `
                     <table>
                         <tr><th>Parameter</th><th>Value</th></tr>
                         <tr><td>Volume of pit</td><td>${result.volume_litres} L</td></tr>
@@ -185,7 +193,6 @@
                         <tr><td>B (Sludge & scum storage)</td><td>${result.B} L</td></tr>
                         <tr><td>Check (A + B)</td><td>${result.check_sum} L</td></tr>
                         <tr><td>N (years until 2/3 full)</td><td>${result.N_years} years</td></tr>
-                        <tr><td>Next emptying date</td><td>${result.next_emptying_date}</td></tr>
                         <tr><td>Location</td><td>(${result.latitude}, ${result.longitude})</td></tr>
                     </table>
                 `;
