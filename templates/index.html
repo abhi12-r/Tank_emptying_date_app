@@ -1,65 +1,141 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sludge Emptying Time Calculator</title>
+    <title>Sani-Track</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        input, select { margin-bottom: 10px; padding: 5px; width: 300px; }
-        button { padding: 8px 16px; }
-        #result { margin-top: 20px; font-weight: bold; }
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            background-color: #f9f9f9;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        h2 {
+            margin-bottom: 5px;
+        }
+        h4 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-style: italic;
+            color: #555;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: left;
+        }
+        input, select {
+            margin-top: 5px;
+            margin-bottom: 15px;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            background: #007BFF;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: normal;
+            text-align: center;
+        }
+        #result table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        #result th, #result td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        #result th {
+            background-color: #007BFF;
+            color: white;
+        }
+        a {
+            display: inline-block;
+            margin-top: 15px;
+            text-decoration: none;
+            color: #007BFF;
+        }
     </style>
 </head>
 <body>
-    <h2>Sludge Emptying Time Calculator</h2>
+    <div class="container">
+        <h2>Sani-Track</h2>
+        <h4>"Know your next emptying date"</h4>
 
-    <label>Last emptying date: </label>
-    <input type="date" id="last_date"><br>
+        <label>Last emptying date:</label>
+        <input type="date" id="last_date">
 
-    <label>No. of people using pit (P): </label>
-    <input type="number" id="P" step="0.01"><br>
+        <label>No. of people using pit (P):</label>
+        <input type="number" id="P" step="0.01">
 
-    <label>q (sewage flow per person per day, L): </label>
-    <input type="number" id="q" step="0.01"><br>
+        <label>q (sewage flow per person per day, L):</label>
+        <input type="number" id="q" step="0.01">
 
-    <label>F (digestion factor): </label>
-    <input type="number" id="F" step="0.01"><br>
+        <label>F (digestion factor):</label>
+        <input type="number" id="F" step="0.01">
 
-    <label>S (sludge accumulation rate, L/person/year): </label>
-    <input type="number" id="S" step="0.01"><br>
+        <label>S (sludge accumulation rate, L/person/year):</label>
+        <input type="number" id="S" step="0.01">
 
-    <label>Shape: </label>
-    <select id="shape" onchange="toggleShapeFields()">
-        <option value="rectangular">Rectangular</option>
-        <option value="circular">Circular</option>
-    </select><br>
+        <label>Shape:</label>
+        <select id="shape" onchange="toggleShapeFields()">
+            <option value="rectangular">Rectangular</option>
+            <option value="circular">Circular</option>
+        </select>
 
-    <div id="rectangular_fields">
-        <label>Length (m): </label>
-        <input type="number" id="length" step="0.01"><br>
-        <label>Width (m): </label>
-        <input type="number" id="width" step="0.01"><br>
-        <label>Depth (m): </label>
-        <input type="number" id="depth" step="0.01"><br>
+        <div id="rectangular_fields">
+            <label>Length (m):</label>
+            <input type="number" id="length" step="0.01">
+            <label>Width (m):</label>
+            <input type="number" id="width" step="0.01">
+            <label>Depth (m):</label>
+            <input type="number" id="depth" step="0.01">
+        </div>
+
+        <div id="circular_fields" style="display:none;">
+            <label>Diameter (m):</label>
+            <input type="number" id="diameter" step="0.01">
+            <label>Depth (m):</label>
+            <input type="number" id="circular_depth" step="0.01">
+        </div>
+
+        <label>Latitude:</label>
+        <input type="number" id="latitude" step="0.000001">
+
+        <label>Longitude:</label>
+        <input type="number" id="longitude" step="0.000001">
+
+        <button onclick="calculate()">Solve</button>
+
+        <div id="result"></div>
+
+        <p><a href="/map" target="_blank">View Heat Map</a></p>
     </div>
-
-    <div id="circular_fields" style="display:none;">
-        <label>Diameter (m): </label>
-        <input type="number" id="diameter" step="0.01"><br>
-        <label>Depth (m): </label>
-        <input type="number" id="circular_depth" step="0.01"><br>
-    </div>
-
-    <label>Latitude: </label>
-    <input type="number" id="latitude" step="0.000001"><br>
-
-    <label>Longitude: </label>
-    <input type="number" id="longitude" step="0.000001"><br>
-
-    <button onclick="calculate()">Solve</button>
-
-    <div id="result"></div>
-
-    <p><a href="/map" target="_blank">View Heat Map</a></p>
 
     <script>
         function toggleShapeFields() {
@@ -87,7 +163,7 @@
                 payload.depth = document.getElementById("depth").value;
             } else {
                 payload.diameter = document.getElementById("diameter").value;
-                payload.depth = document.getElementById("circular_depth").value; // Always send as 'depth'
+                payload.depth = document.getElementById("circular_depth").value;
             }
 
             let response = await fetch("/calculate", {
@@ -101,14 +177,17 @@
                 document.getElementById("result").innerHTML = `<span style="color:red;">Error: ${result.error}</span>`;
             } else {
                 document.getElementById("result").innerHTML = `
-                    Volume of pit: ${result.volume_litres} L<br>
-                    Target volume (2/3 full): ${result.target_volume} L<br>
-                    A (Liquid retention): ${result.A} L<br>
-                    B (Sludge & scum storage): ${result.B} L<br>
-                    Check (A + B): ${result.check_sum} L<br>
-                    N (years until 2/3 full): ${result.N_years} years<br>
-                    Next emptying date: ${result.next_emptying_date}<br>
-                    Location: (${result.latitude}, ${result.longitude})
+                    <table>
+                        <tr><th>Parameter</th><th>Value</th></tr>
+                        <tr><td>Volume of pit</td><td>${result.volume_litres} L</td></tr>
+                        <tr><td>Target volume (2/3 full)</td><td>${result.target_volume} L</td></tr>
+                        <tr><td>A (Liquid retention)</td><td>${result.A} L</td></tr>
+                        <tr><td>B (Sludge & scum storage)</td><td>${result.B} L</td></tr>
+                        <tr><td>Check (A + B)</td><td>${result.check_sum} L</td></tr>
+                        <tr><td>N (years until 2/3 full)</td><td>${result.N_years} years</td></tr>
+                        <tr><td>Next emptying date</td><td>${result.next_emptying_date}</td></tr>
+                        <tr><td>Location</td><td>(${result.latitude}, ${result.longitude})</td></tr>
+                    </table>
                 `;
             }
         }
